@@ -7,7 +7,7 @@ import os
 st.set_page_config(page_title="Data Assembly", layout="wide")
 st.title("📊 Visualizador de Datos Históricos")
 
-@st.cache_data(ttl=3600)  # Cache por 1 hora
+@st.cache_data(ttl=86400)  # Cache por 1 dia
 def cargar_todos_los_datos():
     """
     Carga y combina todos los archivos CSV de manera eficiente
