@@ -43,15 +43,7 @@ def cargar_todos_los_datos():
     if dfs:
         # Combinar todos los DataFrames
         df_completo = pd.concat(dfs, ignore_index=True)
-        
-        # Mostrar resumen en el sidebar
-        with st.sidebar:
-            st.success(f"📊 **Total registros:** {len(df_completo):,}")
-            st.info(f"📁 **Archivos cargados:** {len(dfs)}")
-            st.info(f"💾 **Memoria estimada:** {df_completo.memory_usage(deep=True).sum() / 1e6:.2f} MB")
-        
-        return df_completo
-    
+        return df_completo   
     return None
 
 # Cargar datos (solo se ejecuta una vez y se guarda en caché)
@@ -60,23 +52,11 @@ df = cargar_todos_los_datos()
 if df is not None:
     # Selector de columnas en sidebar
     with st.sidebar:
-        st.divider()
-        st.subheader("🔧 Configuración")
-        
-        # Selección de columnas a mostrar
-        todas_columnas = df.columns.tolist()
-        columnas_seleccionadas = st.multiselect(
-            "Columnas a mostrar",
-            todas_columnas,
-            default=todas_columnas[:5]  # Mostrar primeras 5 por defecto
-        )
-        
-        # Filtro de filas (opcional)
         st.subheader("🎯 Filtros")
         if 'fecha' in df.columns:
             df['fecha'] = pd.to_datetime(df['fecha'])
             años = sorted(df['fecha'].dt.year.unique())
-            años_seleccionados = st.multiselect("Años", años, default=años[-3:])
+            años_seleccionados = st.selectbox("Años", años, default=años[-1])
     
     # Mostrar datos
     tab1, tab2, tab3 = st.tabs(["📋 Datos", "📈 Estadísticas", "ℹ️ Info"])
