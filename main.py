@@ -1,6 +1,6 @@
+
 import streamlit as st
 import pandas as pd
-import glob
 import os
 
 # Configuración de la página
@@ -46,8 +46,26 @@ def cargar_todos_los_datos():
         return df_completo   
     return None
 
+PALETA_COLORES = ['#e24b3c', '#448ea1', '#a8b0b3', '#dbe0da', '#fafbfa']
+st.markdown(f"""
+    <style>
+    .metric-card {{
+        background-color: {PALETA_COLORES[4]};
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 5px solid {PALETA_COLORES[1]};
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        text-align: center;
+        margin-bottom: 15px;
+    }}
+    .metric-title {{ font-size: 14px; color: {PALETA_COLORES[2]}; font-weight: bold; text-transform: uppercase; }}
+    .metric-value {{ font-size: 26px; color: {PALETA_COLORES[0]}; font-weight: bold; }}
+    </style>
+    """, unsafe_allow_html=True)
+
 # Cargar datos (solo se ejecuta una vez y se guarda en caché)
 df = cargar_todos_los_datos()
+df['fecha'] = pd.to_datetime(df['fecha'])
 df['año'] = df['fecha'].dt.year
 df['mes'] = df['fecha'].dt.month
 
@@ -55,21 +73,21 @@ if df is not None:
     # Selector de columnas en sidebar
     with st.sidebar:
         st.subheader("🎯 Filtros")
-            anios = sorted(df['año'].unique(), reverse=True)
-            anio_sel = st.sidebar.selectbox("Año", anios)            
-            meses = df[df['año'] == anio_sel]['mes'].unique()
-            mes_sel = st.sidebar.selectbox("Mes", meses)            
-            df_filtered = df[(df['año'] == anio_sel) & (df['mes'] == mes_sel)]            
+        anios = sorted(df['año'].unique(), reverse=True)
+        anio_sel = st.sidebar.selectbox("Año", anios)            
+        meses = df[df['año'] == anio_sel]['mes'].unique()
+        mes_sel = st.sidebar.selectbox("Mes", meses)            
+        df_filtered = df[(df['año'] == anio_sel) & (df['mes'] == mes_sel)]            
     
     # Mostrar datos
-    tab1, tab2, tab3 = st.tabs(["📋 Datos", "📈 Estadísticas", "ℹ️ Info"])
+    tab1, tab2, tab3 = st.tabs(["📋 General", "📈 Informe", "ℹ️ Marcas"])
     
     with tab1:
         st.subheader("Vista previa de datos")
-        total_ingresos = df_filtered['ingresos_totales'].sum()
-        ingresos_post = df_filtered.loc[df_filtered['producto'] == 'Postpago', 'ingresos_totales'].sum()
-        ingresos_kit = df_filtered.loc[df_filtered['producto'] == 'Kit Contado', 'ingresos_totales'].sum()
-        ingreso_repo = df_filtered.loc[df_filtered['producto'] == 'Reposicion', 'ingresos_totales'].sum()
+        total_ingresos = df_filtered['Ingreso'].sum()
+        ingresos_post = df_filtered.loc[df_filtered['producto'] == 'Postpago', 'Ingreso'].sum()
+        ingresos_kit = df_filtered.loc[df_filtered['producto'] == 'Kit Contado', 'Ingreso'].sum()
+        ingreso_repo = df_filtered.loc[df_filtered['producto'] == 'Reposicion', 'Ingreso'].sum()
         total_ventas = len(df_filtered)    
         vend_activos = df_filtered['nombre_asesor'].nunique()
         total_post = (df_filtered['producto'] == 'Postpago').sum()
