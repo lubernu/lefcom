@@ -56,7 +56,7 @@ if df is not None:
         if 'fecha' in df.columns:
             df['fecha'] = pd.to_datetime(df['fecha'])
             años = sorted(df['fecha'].dt.year.unique())
-            años_seleccionados = st.selectbox("Años", años, default=años[-1])
+            años_seleccionados = st.selectbox("Años", años)
     
     # Mostrar datos
     tab1, tab2, tab3 = st.tabs(["📋 Datos", "📈 Estadísticas", "ℹ️ Info"])
