@@ -14,9 +14,9 @@ def cargar_todos_los_datos():
     """
     # Patrón para encontrar los archivos
     archivos = [
-        'data/historico/datos_2018_2022.csv',
-        'data/historico/datos_2023_2025.csv',
-        'data/diario/datos_2026.csv'
+        'datos_2018_2022.csv',
+        'datos_2023_2025.csv',
+        'datos_2026.csv'
     ]
     
     dfs = []
