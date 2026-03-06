@@ -46,13 +46,9 @@ def cargar_todos_los_datos():
         
         # Mostrar resumen en el sidebar
         with st.sidebar:
-            col1,col2,col3 = st.columns(3)
-            with col1: 
-                st.success(f"📊 **Total registros:** {len(df_completo):,}")
-            with col2:
-                st.info(f"📁 **Archivos cargados:** {len(dfs)}")
-            with col3:
-                st.info(f"💾 **Memoria estimada:** {df_completo.memory_usage(deep=True).sum() / 1e6:.2f} MB")
+            st.success(f"📊 **Total registros:** {len(df_completo):,}")
+            st.info(f"📁 **Archivos cargados:** {len(dfs)}")
+            st.info(f"💾 **Memoria estimada:** {df_completo.memory_usage(deep=True).sum() / 1e6:.2f} MB")
         
         return df_completo
     
