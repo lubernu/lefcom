@@ -1,5 +1,13 @@
-streamlit
-pandas
-matplotlib
-glob
-os
+# Core dependencies
+streamlit>=1.28.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Optional but recommended for better performance
+pyarrow>=12.0.0  # Para lectura más rápida de CSV y mejor manejo de memoria
+openpyxl>=3.1.0  # Si también manejas archivos Excel
+
+# Para visualizaciones adicionales (opcional)
+plotly>=5.14.0  # Si quieres gráficos interactivos
+matplotlib>=3.7.0  # Si prefieres gráficos estáticos
+seaborn>=0.12.0  # Para estadísticas visuales
