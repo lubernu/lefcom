@@ -1,129 +1,133 @@
-
 import streamlit as st
 import pandas as pd
 import os
 
-# Configuración de la página
+# --- 1. CONFIGURACIÓN Y SEGURIDAD ---
 st.set_page_config(page_title="Data Assembly", layout="wide")
-st.title("📊 Visualizador de Datos Históricos")
 
-@st.cache_data(ttl=86400)  # Cache por 1 dia
+def check_password():
+    """Retorna True si el usuario ingresó la contraseña correcta."""
+    if "password_correct" not in st.session_state:
+        st.session_state["password_correct"] = False
+
+    if st.session_state["password_correct"]:
+        return True
+
+    # Mostrar formulario de login
+    st.title("🔐 Acceso Restringido")
+    # Intentamos obtener la clave de secrets, si no existe (local), usamos una por defecto
+    password_master = st.secrets.get("password", "LEFCOM2026")
+    
+    password_input = st.text_input("Introduce la contraseña corporativa", type="password")
+    
+    if st.button("Ingresar"):
+        if password_input == password_master:
+            st.session_state["password_correct"] = True
+            st.rerun()
+        else:
+            st.error("🚫 Contraseña incorrecta")
+    return False
+
+# Si no está autenticado, detiene la ejecución aquí
+if not check_password():
+    st.stop()
+
+# --- 2. CARGA DE DATOS (Solo se ejecuta si pasó el login) ---
+@st.cache_data(ttl=86400)
 def cargar_todos_los_datos():
-    """
-    Carga y combina todos los archivos CSV de manera eficiente
-    """
-    # Patrón para encontrar los archivos
-    archivos = [
-        'datos_2018_2022.csv',
-        'datos_2023_2025.csv',
-        'datos_2026.csv'
-    ]
-    
+    archivos = ['datos_2018_2022.csv', 'datos_2023_2025.csv', 'datos_2026.csv']
     dfs = []
-    total_registros = 0
-    
-    # Barra de progreso para carga inicial
-    progreso = st.progress(0, "Cargando archivos...")
+    progreso = st.progress(0, "Cargando archivos históricos...")
     
     for i, archivo in enumerate(archivos):
         if os.path.exists(archivo):
-            # Leer archivo
             df_temp = pd.read_csv(archivo)
             dfs.append(df_temp)
-            total_registros += len(df_temp)
-            
-            # Actualizar progreso
-            progreso.progress((i + 1) / len(archivos), 
-                            f"Cargado: {os.path.basename(archivo)} - {len(df_temp):,} registros")
+            progreso.progress((i + 1) / len(archivos), f"Cargado: {archivo}")
         else:
-            st.warning(f"⚠️ Archivo no encontrado: {archivo}")
+            st.warning(f"⚠️ Archivo faltante en repo: {archivo}")
     
-    progreso.empty()  # Eliminar barra de progreso
-    
-    if dfs:
-        # Combinar todos los DataFrames
-        df_completo = pd.concat(dfs, ignore_index=True)
-        return df_completo   
-    return None
+    progreso.empty()
+    return pd.concat(dfs, ignore_index=True) if dfs else None
 
-PALETA_COLORES = ['#e24b3c', '#448ea1', '#a8b0b3', '#dbe0da', '#fafbfa']
-st.markdown(f"""
-    <style>
-    .metric-card {{
-        background-color: {PALETA_COLORES[4]};
-        padding: 20px;
-        border-radius: 10px;
-        border-left: 5px solid {PALETA_COLORES[1]};
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-        text-align: center;
-        margin-bottom: 15px;
-    }}
-    .metric-title {{ font-size: 14px; color: {PALETA_COLORES[2]}; font-weight: bold; text-transform: uppercase; }}
-    .metric-value {{ font-size: 26px; color: {PALETA_COLORES[0]}; font-weight: bold; }}
-    </style>
-    """, unsafe_allow_html=True)
-
-# Cargar datos (solo se ejecuta una vez y se guarda en caché)
+# --- 3. PROCESAMIENTO Y UI ---
 df = cargar_todos_los_datos()
-df['fecha'] = pd.to_datetime(df['fecha'])
-df['año'] = df['fecha'].dt.year
-df['mes'] = df['fecha'].dt.month
 
 if df is not None:
-    # Selector de columnas en sidebar
-    with st.sidebar:
-        st.subheader("🎯 Filtros")
-        anios = sorted(df['año'].unique(), reverse=True)
-        anio_sel = st.sidebar.selectbox("Año", anios)            
-        meses = df[df['año'] == anio_sel]['mes'].unique()
-        mes_sel = st.sidebar.selectbox("Mes", meses)            
-        df_filtered = df[(df['año'] == anio_sel) & (df['mes'] == mes_sel)]            
+    # Preparación de columnas
+    df['fecha'] = pd.to_datetime(df['fecha'])
+    df['año'] = df['fecha'].dt.year
+    df['mes'] = df['fecha'].dt.month
     
-    # Mostrar datos
-    tab1, tab2, tab3 = st.tabs(["📋 General", "📈 Informe", "ℹ️ Marcas"])
+    PALETA_COLORES = ['#e24b3c', '#448ea1', '#a8b0b3', '#dbe0da', '#fafbfa']
     
-    with tab1:
-        st.subheader("Vista previa de datos")
-        total_ingresos = df_filtered['Ingreso'].sum()
-        ingresos_post = df_filtered.loc[df_filtered['producto'] == 'Postpago', 'Ingreso'].sum()
-        ingresos_kit = df_filtered.loc[df_filtered['producto'] == 'Kit Contado', 'Ingreso'].sum()
-        ingreso_repo = df_filtered.loc[df_filtered['producto'] == 'Reposicion', 'Ingreso'].sum()
-        total_ventas = len(df_filtered)    
-        vend_activos = df_filtered['nombre_asesor'].nunique()
-        total_post = (df_filtered['producto'] == 'Postpago').sum()
-        total_kit = (df_filtered['producto'] == 'Kit Contado').sum()
-        total_repo = (df_filtered['producto'] == 'Reposicion').sum()
-        ticket_post = ingresos_post / total_post if total_post > 0 else 0
-        ticket_kit = ingresos_kit / total_kit if total_kit > 0 else 0
-        count_financieras = df_filtered['metodo_pago'].count()
-        ticket_repo = ingreso_repo / total_repo if total_repo > 0 else 0
-    
-    
-        col1, col2, col3  = st.columns(3)
-        with col1:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Totales</div><div class="metric-value">{total_ventas:,.0f}</div></div>', unsafe_allow_html=True)
-        with col2:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Post</div><div class="metric-value">{total_post:,}</div></div>', unsafe_allow_html=True)
-        with col3:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">Ticket Promedio</div><div class="metric-value">${ticket_post:,.0f}</div></div>', unsafe_allow_html=True)
-    
-        col4, col5, col6 = st.columns(3)
-        with col4:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">Vendedores Activos</div><div class="metric-value">{vend_activos:,}</div></div>', unsafe_allow_html=True)
-        with col5:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Kit</div><div class="metric-value">{total_kit:,}</div></div>', unsafe_allow_html=True)    
-        with col6:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">Ticket Promedio</div><div class="metric-value">${ticket_kit:,.0f}</div></div>', unsafe_allow_html=True)
-        
-        col7, col8, col9 = st.columns(3)
-        with col7:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Financieras</div><div class="metric-value">{count_financieras:,}</div></div>', unsafe_allow_html=True)
-        with col8:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Repo</div><div class="metric-value">{total_repo:,}</div></div>', unsafe_allow_html=True)    
-        with col9:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">Ticket Promedio</div><div class="metric-value">${ticket_repo:,.0f}</div></div>', unsafe_allow_html=True)
+    # CSS de Tarjetas
+    st.markdown(f"""
+        <style>
+        .metric-card {{
+            background-color: {PALETA_COLORES[4]};
+            padding: 20px; border-radius: 10px;
+            border-left: 5px solid {PALETA_COLORES[1]};
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            text-align: center; margin-bottom: 15px;
+        }}
+        .metric-title {{ font-size: 14px; color: {PALETA_COLORES[2]}; font-weight: bold; text-transform: uppercase; }}
+        .metric-value {{ font-size: 26px; color: {PALETA_COLORES[0]}; font-weight: bold; }}
+        </style>
+    """, unsafe_allow_html=True)
 
-    with tab2:
-        st.subheader("Estadísticas descriptivas")
-    with tab3:
-        st.subheader("Información del dataset")
+    # Sidebar
+    with st.sidebar:
+        st.title("📊 Panel Control")
+        if st.button("🔓 Cerrar Sesión"):
+            st.session_state["password_correct"] = False
+            st.rerun()
+        
+        st.divider()
+        anios = sorted(df['año'].unique(), reverse=True)
+        anio_sel = st.selectbox("Año", anios)
+        meses = sorted(df[df['año'] == anio_sel]['mes'].unique())
+        mes_sel = st.selectbox("Mes", meses)
+        
+        df_filtered = df[(df['año'] == anio_sel) & (df['mes'] == mes_sel)]
+
+    # Tabs y KPIs (Tu lógica original simplificada)
+    tab1, tab2, tab3 = st.tabs(["📋 General", "📈 Informe", "ℹ️ Marcas"])
+
+    with tab1:
+        st.subheader(f"Vista previa: Mes {mes_sel} - {anio_sel}")
+        
+        # Cálculos rápidos
+        def get_metrics(data):
+            # Usamos .get para evitar errores si no hay registros
+            m = {}
+            m['total_v'] = len(data)
+            m['ing_total'] = data['Ingreso'].sum()
+            
+            # Filtros por producto
+            for p in ['Postpago', 'Kit Contado', 'Reposicion']:
+                sub = data[data['producto'] == p]
+                m[f'count_{p}'] = len(sub)
+                m[f'ticket_{p}'] = sub['Ingreso'].mean() if len(sub) > 0 else 0
+            
+            m['vend_act'] = data['nombre_asesor'].nunique()
+            m['finan'] = data['metodo_pago'].count()
+            return m
+
+        res = get_metrics(df_filtered)
+
+        # Render de Tarjetas
+        col1, col2, col3 = st.columns(3)
+        col1.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Totales</div><div class="metric-value">{res["total_v"]:,}</div></div>', unsafe_allow_html=True)
+        col2.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Post</div><div class="metric-value">{res["count_Postpago"]:,}</div></div>', unsafe_allow_html=True)
+        col3.markdown(f'<div class="metric-card"><div class="metric-title">Ticket Prom Post</div><div class="metric-value">${res["ticket_Postpago"]:,.0f}</div></div>', unsafe_allow_html=True)
+
+        col4, col5, col6 = st.columns(3)
+        col4.markdown(f'<div class="metric-card"><div class="metric-title">Vendedores Activos</div><div class="metric-value">{res["vend_act"]:,}</div></div>', unsafe_allow_html=True)
+        col5.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Kit</div><div class="metric-value">{res["count_Kit Contado"]:,}</div></div>', unsafe_allow_html=True)
+        col6.markdown(f'<div class="metric-card"><div class="metric-title">Ticket Prom Kit</div><div class="metric-value">${res["ticket_Kit Contado"]:,.0f}</div></div>', unsafe_allow_html=True)
+
+        col7, col8, col9 = st.columns(3)
+        col7.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Financieras</div><div class="metric-value">{res["finan"]:,}</div></div>', unsafe_allow_html=True)
+        col8.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Repo</div><div class="metric-value">{res["count_Reposicion"]:,}</div></div>', unsafe_allow_html=True)
+        col9.markdown(f'<div class="metric-card"><div class="metric-title">Ticket Prom Repo</div><div class="metric-value">${res["ticket_Reposicion"]:,.0f}</div></div>', unsafe_allow_html=True)
