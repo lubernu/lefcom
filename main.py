@@ -1,5 +1,7 @@
 import streamlit as st
+import plotly.express as px
 import pandas as pd
+from utils import cargar_datos_base, obtener_metricas, calcular_proyeccion
 import os
 
 # --- 1. CONFIGURACIÓN Y SEGURIDAD ---
@@ -32,102 +34,188 @@ def check_password():
 if not check_password():
     st.stop()
 
-# --- 2. CARGA DE DATOS (Solo se ejecuta si pasó el login) ---
-@st.cache_data(ttl=86400)
-def cargar_todos_los_datos():
-    archivos = ['datos_2018_2022.csv', 'datos_2023_2025.csv', 'datos_2026.csv']
-    dfs = []
-    progreso = st.progress(0, "Cargando archivos históricos...")
-    
-    for i, archivo in enumerate(archivos):
-        if os.path.exists(archivo):
-            df_temp = pd.read_csv(archivo)
-            dfs.append(df_temp)
-            progreso.progress((i + 1) / len(archivos), f"Cargado: {archivo}")
-        else:
-            st.warning(f"⚠️ Archivo faltante en repo: {archivo}")
-    
-    progreso.empty()
-    return pd.concat(dfs, ignore_index=True) if dfs else None
+# --- CONFIGURACIÓN Y ESTILOS ---
+PALETA = ["#a19c9c","#65bd55","#12583EFF","#020D22","#16a34a"]
 
-# --- 3. PROCESAMIENTO Y UI ---
-df = cargar_todos_los_datos()
+st.markdown(f"""
+    <style>
+    .metric-card {{
+        background-color: white; padding: 20px; border-radius: 12px;
+        border-left: 8px solid {PALETA[2]}; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        text-align: center; margin-bottom: 10px;
+    }}
+    .metric-title {{ font-size: 14px; color: #666; font-weight: bold; text-transform: uppercase; }}
+    .metric-value {{ font-size: 32px; font-weight: 800; color: {PALETA[3]}; }}
+    .metric-delta {{ font-size: 14px; margin-top: 5px; }}
+    .up {{ color: green; }} .down {{ color: red; }}
+    </style>
+""", unsafe_allow_html=True)
 
-if df is not None:
-    # Preparación de columnas
-    df['fecha'] = pd.to_datetime(df['fecha'])
-    df['año'] = df['fecha'].dt.year
-    df['mes'] = df['fecha'].dt.month
+# --- CARGA DE DATOS ---
+df_completo = cargar_datos_base()
+
+if df_completo.empty:
+    st.error("No se encontraron archivos de datos.")
+    st.stop()
+
+# --- SIDEBAR / FILTROS ---
+with st.sidebar:
+    st.header("Filtros")
+    anios = sorted(df_completo['año'].unique(), reverse=True)
+    anio_sel = st.selectbox("Año", anios)
     
-    PALETA_COLORES = ['#e24b3c', '#448ea1', '#a8b0b3', '#dbe0da', '#fafbfa']
+    meses_disponibles = df_completo[df_completo['año'] == anio_sel]['mes_nombre'].unique()
+    mes_sel = st.selectbox("Mes", meses_disponibles)
+
+# --- LÓGICA DE COMPARACIÓN (EL CORAZÓN DEL PROBLEMA) ---
+# 1. Mes Actual
+df_actual = df_completo[(df_completo['año'] == anio_sel) & (df_completo['mes_nombre'] == mes_sel)]
+m_actual = obtener_metricas(df_actual)
+
+# 2. Mes Anterior (Buscamos en el periodo anterior del DF completo)
+periodo_actual = df_actual['periodo'].iloc[0]
+periodo_anterior = periodo_actual - 1
+df_anterior = df_completo[df_completo['periodo'] == periodo_anterior]
+m_anterior = obtener_metricas(df_anterior)
+
+# 3. Proyección
+factor_proy = calcular_proyeccion(df_actual)
+
+# --- RENDERIZADO ---
+st.title("📊 Dashboard De Ventas")
+
+def render_metric(titulo, valor_actual, valor_anterior, factor_proy):
+    # Calculamos la proyección
+    proyeccion = valor_actual * factor_proy
     
-    # CSS de Tarjetas
+    # La diferencia real para el negocio: ¿Mi proyección actual supera al cierre anterior?
+    dif_vs_cierre = proyeccion - valor_anterior
+    
+    # Formateo de colores basado en la proyección
+    delta_class = "up" if dif_vs_cierre >= 0 else "down"
+    simbolo = "+" if dif_vs_cierre >= 0 else ""
+    
     st.markdown(f"""
-        <style>
-        .metric-card {{
-            background-color: {PALETA_COLORES[4]};
-            padding: 20px; border-radius: 10px;
-            border-left: 5px solid {PALETA_COLORES[1]};
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-            text-align: center; margin-bottom: 15px;
-        }}
-        .metric-title {{ font-size: 14px; color: {PALETA_COLORES[2]}; font-weight: bold; text-transform: uppercase; }}
-        .metric-value {{ font-size: 26px; color: {PALETA_COLORES[0]}; font-weight: bold; }}
-        </style>
+        <div class="metric-card" style="background-color: #f0f2f6; padding: 15px; border-radius: 10px;">
+            <div class="metric-title">{titulo}</div>
+            <div class="metric-value">{valor_actual:,}</div>
+            <div class="metric-delta {delta_class}">
+                <div style="font-size: 1.1em; font-weight: bold;">
+                    Proy: {proyeccion:.0f}
+                </div>
+                <div>
+                    {simbolo}{dif_vs_cierre:.0f} vs cierre ant.
+                </div>
+            </div>
+        </div>
     """, unsafe_allow_html=True)
 
-    # Sidebar
-    with st.sidebar:
-        st.title("📊 Panel Control")
-        if st.button("🔓 Cerrar Sesión"):
-            st.session_state["password_correct"] = False
-            st.rerun()
+tab1, tab2, tab3 = st.tabs(["📋 General", "📈 PDV", "ℹ️ Marcas"])
+
+with tab1:
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: 
+        render_metric(f"Ventas {mes_sel}", m_actual['total'], m_anterior['total'], factor_proy)
+    with c2: 
+        render_metric("Postpago", m_actual['postpago'], m_anterior['postpago'], factor_proy)
+    with c3: 
+        render_metric("Equipos", m_actual['equipos'], m_anterior['equipos'], factor_proy)
+    with c4: 
+        render_metric("Financiado", m_actual['financiado'], m_anterior['financiado'], factor_proy)
+
+    st.divider()
+    
+    col_left, col_right = st.columns([0.4, 0.6])
+    with col_left:
+        st.subheader("Ventas por CPS")
+        pivot_cps = df_actual.pivot_table(index='cps', columns='producto', values='fecha', aggfunc='count', fill_value=0)
+        pivot_cps['Total'] = pivot_cps.sum(axis=1)
+        st.dataframe(pivot_cps.sort_values('Total', ascending=False), use_container_width=True)
         
-        st.divider()
-        anios = sorted(df['año'].unique(), reverse=True)
-        anio_sel = st.selectbox("Año", anios)
-        meses = sorted(df[df['año'] == anio_sel]['mes'].unique())
-        mes_sel = st.selectbox("Mes", meses)
-        
-        df_filtered = df[(df['año'] == anio_sel) & (df['mes'] == mes_sel)]
+    with col_right:
+        st.subheader("Distribución de Productos")
+        fig_prod = px.bar(df_actual['producto'].value_counts().reset_index(), 
+                         x='producto', y='count', text='count',
+                         color_discrete_sequence=[PALETA[1]])
+        st.plotly_chart(fig_prod, use_container_width=True)
 
-    # Tabs y KPIs (Tu lógica original simplificada)
-    tab1, tab2, tab3 = st.tabs(["📋 General", "📈 Informe", "ℹ️ Marcas"])
+    st.divider()
 
-    with tab1:
-        st.subheader(f"Vista previa: Mes {mes_sel} - {anio_sel}")
-        
-        # Cálculos rápidos
-        def get_metrics(data):
-            # Usamos .get para evitar errores si no hay registros
-            m = {}
-            m['total_v'] = len(data)
-            m['ing_total'] = data['Ingreso'].sum()
-            
-            # Filtros por producto
-            for p in ['Postpago', 'Kit Contado', 'Reposicion']:
-                sub = data[data['producto'] == p]
-                m[f'count_{p}'] = len(sub)
-                m[f'ticket_{p}'] = sub['Ingreso'].mean() if len(sub) > 0 else 0
-            
-            m['vend_act'] = data['nombre_asesor'].nunique()
-            m['finan'] = data['metodo_pago'].count()
-            return m
+    col1, col2 = st.columns([0.4, 0.6])
+    with col1:
+        st.subheader("Ventas por Financieras")
+        vent_financiera = df_actual.groupby('metodo_pago').size().reset_index(name='Cant.').sort_values('Cant.',ascending=True)
+        st.dataframe(vent_financiera)
 
-        res = get_metrics(df_filtered)
+        ing_equipos = df_actual.groupby('producto')['Ingreso'].sum().reset_index(name='Ingreso_Total')
+        st.dataframe(ing_equipos)
 
-        # Render de Tarjetas
-        col1, col2, col3 = st.columns(3)
-        col1.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Totales</div><div class="metric-value">{res["total_v"]:,}</div></div>', unsafe_allow_html=True)
-        col2.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Post</div><div class="metric-value">{res["count_Postpago"]:,}</div></div>', unsafe_allow_html=True)
-        col3.markdown(f'<div class="metric-card"><div class="metric-title">Ticket Prom Post</div><div class="metric-value">${res["ticket_Postpago"]:,.0f}</div></div>', unsafe_allow_html=True)
+    with col2:
+        st.subheader("Ventas por Marca")
+        vent_marcas = df_actual.groupby('Marca').size().reset_index(name='Cant.').sort_values('Cant.', ascending=True)
+        vent_marcas = vent_marcas[vent_marcas['Marca'] != 'TRAIDO' ]
+        fig = px.bar(vent_marcas, 
+                 x='Cant.', 
+                 y='Marca',
+                 orientation='h',
+                 text='Cant.') 
+        fig.update_traces(marker_color=PALETA[1], textposition='outside')
+        st.plotly_chart(fig, use_container_width=True)
+    
+# (Aquí seguirían tab2 y tab3 con lógicas similares filtrando por df_actual)
+with tab2:
+    c1,c2,c3,c4,c5 = st.columns([.15,.2125,.2125,.2125,.2125])
+    with c1:
+        pdv = sorted(df_actual['cps'].unique(), reverse=True)
+        pdv_sel = st.selectbox("Punto de Venta", pdv)
+        df_actual_pdv = df_actual[(df_actual['cps'] == pdv_sel)]
+        m_actual = obtener_metricas(df_actual_pdv)
+        df_anterior = df_completo[(df_completo['periodo'] == periodo_anterior) & (df_completo['cps']== pdv_sel) ]
+        m_anterior = obtener_metricas(df_anterior)
 
-        col4, col5, col6 = st.columns(3)
-        col4.markdown(f'<div class="metric-card"><div class="metric-title">Vendedores Activos</div><div class="metric-value">{res["vend_act"]:,}</div></div>', unsafe_allow_html=True)
-        col5.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Kit</div><div class="metric-value">{res["count_Kit Contado"]:,}</div></div>', unsafe_allow_html=True)
-        col6.markdown(f'<div class="metric-card"><div class="metric-title">Ticket Prom Kit</div><div class="metric-value">${res["ticket_Kit Contado"]:,.0f}</div></div>', unsafe_allow_html=True)
+    with c2: 
+        render_metric(f"Ventas {mes_sel}", m_actual['total'], m_anterior['total'], factor_proy)
+    with c3: 
+        render_metric("Postpago", m_actual['postpago'], m_anterior['postpago'], factor_proy)
+    with c4: 
+        render_metric("Equipos", m_actual['equipos'], m_anterior['equipos'], factor_proy)
+    with c5: 
+        render_metric("Financiado", m_actual['financiado'], m_anterior['financiado'], factor_proy)
 
-        col7, col8, col9 = st.columns(3)
-        col7.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Financieras</div><div class="metric-value">{res["finan"]:,}</div></div>', unsafe_allow_html=True)
-        col8.markdown(f'<div class="metric-card"><div class="metric-title">Ventas Repo</div><div class="metric-value">{res["count_Reposicion"]:,}</div></div>', unsafe_allow_html=True)
-        col9.markdown(f'<div class="metric-card"><div class="metric-title">Ticket Prom Repo</div><div class="metric-value">${res["ticket_Reposicion"]:,.0f}</div></div>', unsafe_allow_html=True)
+    st.divider()
+    col_left, col_right = st.columns([0.4, 0.6])
+    with col_left:
+        st.subheader("Ventas por Vendedor")
+        pivot_vendedor = df_actual_pdv.pivot_table(index='nombre_asesor', columns='producto', values='fecha', aggfunc='count', fill_value=0)
+        pivot_vendedor['Total'] = pivot_vendedor.sum(axis=1)
+        st.dataframe(pivot_vendedor.sort_values('Total', ascending=False), use_container_width=True)
+
+    with col_right:
+        st.subheader("Distribución de Productos")
+        fig_prod = px.bar(df_actual_pdv['producto'].value_counts().reset_index(), 
+                         x='producto', y='count', text='count',
+                         color_discrete_sequence=[PALETA[1]])
+        st.plotly_chart(fig_prod, use_container_width=True)
+
+    st.divider()
+
+    col1, col2 = st.columns([0.4, 0.6])
+    with col1:
+        st.subheader("Ventas por Financieras")
+        vent_financiera = df_actual_pdv.groupby('metodo_pago').size().reset_index(name='Cant.').sort_values('Cant.',ascending=True)
+        st.dataframe(vent_financiera)
+
+        ing_equipos = df_actual_pdv.groupby('producto')['Ingreso'].sum().reset_index(name='Ingreso_Total')
+        st.dataframe(ing_equipos)
+
+    with col2:
+        st.subheader("Ventas por Marca")
+        vent_marcas = df_actual_pdv.groupby('Marca').size().reset_index(name='Cant.').sort_values('Cant.', ascending=True)
+        vent_marcas = vent_marcas[vent_marcas['Marca'] != 'TRAIDO' ]
+        fig = px.bar(vent_marcas, 
+                 x='Cant.', 
+                 y='Marca',
+                 orientation='h',
+                 text='Cant.') 
+        fig.update_traces(marker_color=PALETA[1], textposition='outside')
+        st.plotly_chart(fig, use_container_width=True)
