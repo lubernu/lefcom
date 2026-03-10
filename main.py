@@ -125,7 +125,7 @@ with tab1:
 
     st.divider()
     
-    col_left, col_right = st.columns([0.4, 0.6])
+    col_left, col_right = st.columns([0.6, 0.4])
     with col_left:
         st.subheader("Ventas por CPS")
         pivot_cps = df_actual.pivot_table(index='cps', columns='producto', values='fecha', aggfunc='count', fill_value=0)
@@ -141,7 +141,7 @@ with tab1:
 
     st.divider()
 
-    col1, col2 = st.columns([0.4, 0.6])
+    col1, col2 = st.columns([0.6, 0.4])
     with col1:
         st.subheader("Ventas por Financieras")
         vent_financiera = df_actual.groupby('metodo_pago').size().reset_index(name='Cant.').sort_values('Cant.',ascending=True)
