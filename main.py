@@ -141,16 +141,17 @@ with tab1:
 
     st.divider()
 
-    col1, col2 = st.columns([0.6, 0.4])
+    col1, col2, col3 = st.columns([0.3,0.3, 0.4])
     with col1:
         st.subheader("Ventas por Financieras")
         vent_financiera = df_actual.groupby('metodo_pago').size().reset_index(name='Cant.').sort_values('Cant.',ascending=True)
         st.dataframe(vent_financiera)
-
+    with col2:
+        st.subheader("Ingreso por producto")
         ing_equipos = df_actual.groupby('producto')['Ingreso'].sum().reset_index(name='Ingreso_Total')
         st.dataframe(ing_equipos)
 
-    with col2:
+    with col3:
         st.subheader("Ventas por Marca")
         vent_marcas = df_actual.groupby('Marca').size().reset_index(name='Cant.').sort_values('Cant.', ascending=True)
         vent_marcas = vent_marcas[vent_marcas['Marca'] != 'TRAIDO' ]
