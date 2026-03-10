@@ -162,7 +162,6 @@ with tab1:
         fig.update_traces(marker_color=PALETA[1], textposition='outside')
         st.plotly_chart(fig, use_container_width=True)
     
-# (Aquí seguirían tab2 y tab3 con lógicas similares filtrando por df_actual)
 with tab2:
     c1,c2,c3,c4,c5 = st.columns([.15,.2125,.2125,.2125,.2125])
     with c1:
@@ -199,16 +198,17 @@ with tab2:
 
     st.divider()
 
-    col1, col2 = st.columns([0.6, 0.4])
+    col1,col2, col3 = st.columns([0.3,0.3, 0.4])
     with col1:
         st.subheader("Ventas por Financieras")
         vent_financiera = df_actual_pdv.groupby('metodo_pago').size().reset_index(name='Cant.').sort_values('Cant.',ascending=True)
         st.dataframe(vent_financiera)
-
+    with col2:
+        st.subheader("Ventas por producto")
         ing_equipos = df_actual_pdv.groupby('producto')['Ingreso'].sum().reset_index(name='Ingreso_Total')
         st.dataframe(ing_equipos)
 
-    with col2:
+    with col3:
         st.subheader("Ventas por Marca")
         vent_marcas = df_actual_pdv.groupby('Marca').size().reset_index(name='Cant.').sort_values('Cant.', ascending=True)
         vent_marcas = vent_marcas[vent_marcas['Marca'] != 'TRAIDO' ]
