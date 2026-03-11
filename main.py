@@ -172,6 +172,8 @@ with tab2:
         m_actual = obtener_metricas(df_actual_pdv)
         df_anterior = df_completo[(df_completo['periodo'] == periodo_anterior) & (df_completo['cps']== pdv_sel) ]
         m_anterior = obtener_metricas(df_anterior)
+        f_corte = df_actual_pdv['fecha'].max()
+        st.info(f"##### Fecha Corte: {f_corte.strftime('%d/%m/%Y')}")
 
     with c2: 
         render_metric(f"Ventas {mes_sel}", m_actual['total'], m_anterior['total'], factor_proy)
