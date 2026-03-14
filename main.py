@@ -163,7 +163,7 @@ with tab1:
         st.subheader("Ventas por CPS")
         pivot_cps = df_actual.pivot_table(index='cps', columns='producto', values='fecha', aggfunc='count', fill_value=0)
         pivot_cps['Total'] = pivot_cps.sum(axis=1)
-        st.dataframe(pivot_cps.sort_values('Total', ascending=False), use_container_width=True)
+        st.dataframe(pivot_cps.sort_values('Total', ascending=False), use_container_width=True,height=30)
         
     with col_right:
         st.subheader("Distribución de Productos")
