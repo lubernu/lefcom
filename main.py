@@ -4,6 +4,36 @@ import pandas as pd
 from utils import cargar_datos_base, obtener_metricas, calcular_proyeccion
 import os
 
+# === NUEVO: Función para filas compactas ===
+def set_compact_row_height():
+    """Inyecta CSS para filas compactas de 30px en todas las tablas."""
+    css = """
+    <style>
+        /* Aplica a todas las tablas de Streamlit */
+        div[data-testid="stDataFrame"] table tbody tr,
+        div[data-testid="stDataFrame"] table thead tr {
+            height: 30px !important;
+        }
+        
+        /* Padding interno compacto */
+        div[data-testid="stDataFrame"] table td,
+        div[data-testid="stDataFrame"] table th {
+            padding: 4px 8px !important;
+            vertical-align: middle !important;
+            font-size: 13px !important;
+        }
+        
+        /* Estilo adicional para mejor legibilidad */
+        div[data-testid="stDataFrame"] table {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
+# ==========================================
+
+
+
 # --- 1. CONFIGURACIÓN Y SEGURIDAD ---
 st.set_page_config(page_title="Data Assembly", layout="wide")
 
@@ -83,6 +113,9 @@ factor_proy = calcular_proyeccion(df_actual)
 
 # --- RENDERIZADO ---
 st.title("📊 Dashboard De Ventas")
+# === NUEVO: Activar filas compactas ===
+set_compact_row_height()
+# ======================================
 
 def render_metric(titulo, valor_actual, valor_anterior, factor_proy):
     # Calculamos la proyección
