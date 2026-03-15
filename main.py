@@ -166,7 +166,7 @@ with tab1:
         st.subheader("Ventas por CPS")
         pivot_cps = df_actual.pivot_table(index='cps', columns='producto', values='fecha', aggfunc='count', fill_value=0)
         pivot_cps['Total'] = pivot_cps.sum(axis=1)
-        st.dataframe(pivot_cps.sort_values('Total', ascending=False), use_container_width=True)
+        st.dataframe(pivot_cps.sort_values('Total', ascending=False),row_height=25, use_container_width=True)
         
     with col_right:
         st.subheader("Distribución de Productos")
@@ -181,11 +181,11 @@ with tab1:
     with col1:
         st.subheader("Ventas por Financieras")
         vent_financiera = df_actual.groupby('metodo_pago').size().reset_index(name='Cant.').sort_values('Cant.',ascending=True)
-        st.dataframe(vent_financiera,hide_index=True)
+        st.dataframe(vent_financiera,row_height=25,hide_index=True)
     with col2:
         st.subheader("Ingreso por producto")
         ing_equipos = df_actual.groupby('producto')['Ingreso'].sum().reset_index(name='Ingreso_Total')
-        st.dataframe(ing_equipos,hide_index=True)
+        st.dataframe(ing_equipos,row_height=25,hide_index=True)
 
     with col3:
         st.subheader("Ventas por Marca")
@@ -226,14 +226,14 @@ with tab2:
         st.subheader("Ventas por Vendedor")
         pivot_vendedor = df_actual_pdv.pivot_table(index='nombre_asesor', columns='producto', values='fecha', aggfunc='count', fill_value=0)
         pivot_vendedor['Total'] = pivot_vendedor.sum(axis=1)
-        st.dataframe(pivot_vendedor.sort_values('Total', ascending=False), use_container_width=True)
+        st.dataframe(pivot_vendedor.sort_values('Total', ascending=False),row_height=25, use_container_width=True)
 
     with col_right:
         st.subheader("Distribución de Productos")
         fig_prod = px.bar(df_actual_pdv['producto'].value_counts().reset_index(), 
                          x='producto', y='count', text='count',
                          color_discrete_sequence=[PALETA[1]])
-        st.plotly_chart(fig_prod, use_container_width=True)
+        st.plotly_chart(fig_prod,row_height=25, use_container_width=True)
 
     st.divider()
 
@@ -241,11 +241,11 @@ with tab2:
     with col1:
         st.subheader("Ventas por Financieras")
         vent_financiera = df_actual_pdv.groupby('metodo_pago').size().reset_index(name='Cant.').sort_values('Cant.',ascending=True)
-        st.dataframe(vent_financiera,hide_index=True)
+        st.dataframe(vent_financiera,row_height=25,hide_index=True)
     with col2:
         st.subheader("Ventas por producto")
         ing_equipos = df_actual_pdv.groupby('producto')['Ingreso'].sum().reset_index(name='Ingreso_Total')
-        st.dataframe(ing_equipos,hide_index=True)
+        st.dataframe(ing_equipos,row_height=25,hide_index=True)
 
     with col3:
         st.subheader("Ventas por Marca")
