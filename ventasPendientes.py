@@ -25,8 +25,8 @@ st.markdown(f"""
 # 2. FUNCIÓN DE CARGA DE DATOS
 @st.cache_data
 def load_data():
-    ruta1 = r"C:\Users\lubernu\Desktop\streamlit\Archivos\kit_pendiente.csv"
-    ruta2 = r"C:\Users\lubernu\Desktop\streamlit\Archivos\post_pendiente.csv"
+    ruta1 = "kit_pendiente.csv"
+    ruta2 = "post_pendiente.csv"
     df_kit = pd.read_csv(ruta1)
     df_post = pd.read_csv(ruta2)
     return df_kit, df_post
