@@ -40,11 +40,13 @@ except Exception as e:
 # Calcular métricas
 total_kit = len(df_kit)
 vendidos_kit = df_kit[df_kit['cps'].notna()]
+no_vendidos_kit = df_kit[df_kit['cps'].isna()]
 vendidos_kit_count = len(vendidos_kit)
 pct_kit = (vendidos_kit_count / total_kit * 100) if total_kit > 0 else 0
 
 total_post = len(df_post)
 vendidos_post = df_post[df_post['cps'].notna()]
+no_vendidos_post = df_post[df_post['cps'].isna()]
 vendidos_post_count = len(vendidos_post)
 pct_post = (vendidos_post_count / total_post * 100) if total_post > 0 else 0
 
@@ -84,11 +86,13 @@ with col4:
 tab1, tab2 = st.tabs(["📋 Kit", "📈 Post"])
 
 with tab1:
+    st.markdown("### Vendidos")
     st.dataframe(vendidos_kit)
-    st.markdown("### Listado Original")
-    st.dataframe(df_kit)
+    st.markdown("### Sin Vender")
+    st.dataframe(no_vendidos_kit)
 
 with tab2:
+    st.markdown("### Vendidos")
     st.dataframe(vendidos_post)
-    st.markdown("### Listado Original")
-    st.dataframe(df_post)
+    st.markdown("### Sin Vender")
+    st.dataframe(no_vendidos_post)
