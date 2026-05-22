@@ -68,5 +68,14 @@ try:
     st.write("Conteo total:", response.count)
     st.write("Primeras filas (muestra):", response.data[:3])
 except Exception as e:
+
+# Listar tablas (requiere permisos de administrador, pero intenta)
+try:
+    tables = supabase.table("information_schema.tables").select("table_name").eq("table_schema", "public").execute()
+    st.write("Tablas en public:", [t["table_name"] for t in tables.data])
+except:
+    st.write("No se pudo listar tablas (permisos insuficientes)")
+
+    
     st.error(f"Error: {e}")
 
