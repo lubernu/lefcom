@@ -68,3 +68,4 @@ try:
     st.write("Conteo total:", response.count)
     st.write("Primeras filas (muestra):", response.data[:3])
 except Exception as e:
+    st.error(f"Error: {e}")
