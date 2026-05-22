@@ -50,6 +50,7 @@ for venta in ventas_pendientes.data:
                 .execute()
             st.success(f"Asignado a {nombre_seleccionado}")
             st.rerun()  # Recarga la página para que desaparezca la venta asignada '''
+
 import streamlit as st
 from supabase import create_client
 
@@ -60,6 +61,12 @@ st.write("URL:", url)
 st.write("Key (primeros 10):", key[:10])
 
 supabase = create_client(url, key)
-result = supabase.table("ventas").select("count", count="exact").execute()
-st.write("Conteo:", result.count)
+
+# Forma correcta de contar registros
+try:
+    response = supabase.table("ventas").select("*", count="exact").execute()
+    st.write("Conteo total:", response.count)
+    st.write("Primeras filas (muestra):", response.data[:3])
+except Exception as e:
+    st.error(f"Error: {e}")
 
