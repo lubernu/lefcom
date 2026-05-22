@@ -10,6 +10,15 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 st.set_page_config(page_title="Asignación de Vendedores", layout="centered")
 st.title("📋 Ventas pendientes de asignar")
 
+# Contar todas las filas (sin filtro)
+todas = supabase.table("ventas").select("*", count="exact").execute()
+st.write(f"Total de ventas en la tabla: {todas.count}")
+
+# Contar las que tienen vendedor_cedula NULL usando SQL directo (para comparar)
+from supabase import Client
+result = supabase.rpc('count_null_vendedor', {}).execute()
+
+
 # Cargar ventas sin vendedor (solo las no asignadas)
 ventas_pendientes = supabase.table("ventas") \
     .select("*") \
