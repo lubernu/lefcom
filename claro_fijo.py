@@ -1,4 +1,4 @@
-import streamlit as st
+'''import streamlit as st
 from supabase import create_client
 import pandas as pd
 
@@ -49,5 +49,17 @@ for venta in ventas_pendientes.data:
                 .eq("id", venta["id"]) \
                 .execute()
             st.success(f"Asignado a {nombre_seleccionado}")
-            st.rerun()  # Recarga la página para que desaparezca la venta asignada 
+            st.rerun()  # Recarga la página para que desaparezca la venta asignada '''
+import streamlit as st
+from supabase import create_client
+
+url = st.secrets["SUPABASE_URL"]
+key = st.secrets["SUPABASE_KEY"]
+
+st.write("URL:", url)
+st.write("Key (primeros 10):", key[:10])
+
+supabase = create_client(url, key)
+result = supabase.table("ventas").select("count", count="exact").execute()
+st.write("Conteo:", result.count)
 
