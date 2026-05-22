@@ -13,7 +13,7 @@ st.title("📋 Ventas pendientes de asignar")
 # Cargar ventas sin vendedor (solo las no asignadas)
 ventas_pendientes = supabase.table("ventas") \
     .select("*") \
-    .is_("vendedor_cedula", None) \
+    .filter("vendedor_cedula", "is", "null")
     .execute()
 
 # Cargar vendedores para el desplegable
