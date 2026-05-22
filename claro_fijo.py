@@ -1,4 +1,4 @@
-import streamlit as st
+'''import streamlit as st
 from supabase import create_client
 import pandas as pd
 
@@ -9,15 +9,6 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 st.set_page_config(page_title="Asignación de Vendedores", layout="centered")
 st.title("📋 Ventas pendientes de asignar")
-
-# Contar todas las filas (sin filtro)
-todas = supabase.table("ventas").select("*", count="exact").execute()
-st.write(f"Total de ventas en la tabla: {todas.count}")
-
-# Contar las que tienen vendedor_cedula NULL usando SQL directo (para comparar)
-from supabase import Client
-result = supabase.rpc('count_null_vendedor', {}).execute()
-
 
 # Cargar ventas sin vendedor (solo las no asignadas)
 ventas_pendientes = supabase.table("ventas") \
@@ -58,4 +49,85 @@ for venta in ventas_pendientes.data:
                 .eq("id", venta["id"]) \
                 .execute()
             st.success(f"Asignado a {nombre_seleccionado}")
-            st.rerun()  # Recarga la página para que desaparezca la venta asignada 
+            st.rerun()  # Recarga la página para que desaparezca la venta asignada '''
+
+import streamlit as st
+from supabase import create_client
+
+# ==========================================
+# Configuración
+# ==========================================
+url = st.secrets["SUPABASE_URL"]
+key = st.secrets["SUPABASE_KEY"]
+supabase = create_client(url, key)
+
+st.title("🔍 DIAGNÓSTICO - Ventas pendientes")
+
+# ------------------------------------------------------------
+# 1. Ver todas las filas (sin filtro) y mostrar las primeras 5
+# ------------------------------------------------------------
+try:
+    respuesta_todas = supabase.table("ventas").select("*").limit(5).execute()
+    st.subheader("📌 Primeras 5 filas de la tabla 'ventas'")
+    st.dataframe(respuesta_todas.data)
+except Exception as e:
+    st.error(f"Error al consultar todas las ventas: {e}")
+
+# ------------------------------------------------------------
+# 2. Contar total de filas
+# ------------------------------------------------------------
+try:
+    conteo_total = supabase.table("ventas").select("*", count="exact").execute()
+    st.write(f"**Total de registros en ventas:** {conteo_total.count}")
+except Exception as e:
+    st.error(f"Error en conteo total: {e}")
+
+# ------------------------------------------------------------
+# 3. Contar ventas con vendedor_cedula = NULL (usando .is_ con None)
+# ------------------------------------------------------------
+try:
+    pendientes_is = supabase.table("ventas") \
+        .select("*", count="exact") \
+        .is_("vendedor_cedula", None) \
+        .execute()
+    st.write(f"**Ventas con vendedor_cedula = NULL (usando .is_ con None):** {pendientes_is.count}")
+except Exception as e:
+    st.error(f"Error en filtro .is_ con None: {e}")
+
+# ------------------------------------------------------------
+# 4. Contar ventas con vendedor_cedula = 'null' (como texto)
+# ------------------------------------------------------------
+try:
+    pendientes_texto = supabase.table("ventas") \
+        .select("*", count="exact") \
+        .eq("vendedor_cedula", "null") \
+        .execute()
+    st.write(f"**Ventas con vendedor_cedula = 'null' (texto):** {pendientes_texto.count}")
+except Exception as e:
+    st.error(f"Error en filtro eq('null'): {e}")
+
+# ------------------------------------------------------------
+# 5. Contar ventas con vendedor_cedula = cadena vacía ''
+# ------------------------------------------------------------
+try:
+    pendientes_vacio = supabase.table("ventas") \
+        .select("*", count="exact") \
+        .eq("vendedor_cedula", "") \
+        .execute()
+    st.write(f"**Ventas con vendedor_cedula = '' (vacío):** {pendientes_vacio.count}")
+except Exception as e:
+    st.error(f"Error en filtro eq(''): {e}")
+
+# ------------------------------------------------------------
+# 6. Mostrar valores únicos de vendedor_cedula (para ver qué hay)
+# ------------------------------------------------------------
+try:
+    valores_unicos = supabase.table("ventas") \
+        .select("vendedor_cedula") \
+        .execute()
+    valores = list(set([fila["vendedor_cedula"] for fila in valores_unicos.data]))
+    st.write("**Valores únicos en columna vendedor_cedula:**", valores)
+except Exception as e:
+    st.error(f"Error al obtener valores únicos: {e}")
+
+
