@@ -103,3 +103,59 @@ with tab2:
             file_name="ventas_asignadas.csv",
             mime="text/csv",
         ) 
+
+# ================= SECCIÓN ADMINISTRATIVA (solo para ti) =================
+with st.expander("🔐 Panel de Administración (corrección de asignaciones)"):
+    password = st.text_input("Contraseña de administrador", type="password", key="admin_pass")
+    if password == "lefcom2026*":
+        st.success("Acceso concedido. Puedes modificar el vendedor de cualquier venta.")
+        
+        # Cargar todas las ventas (sin filtrar)
+        todas_ventas = supabase.table("ventas").select("*").order("id").execute()
+        if not todas_ventas.data:
+            st.info("No hay ventas en la base de datos.")
+        else:
+            df_todas = pd.DataFrame(todas_ventas.data)
+            
+            # Mapeo inverso (cédula -> nombre)
+            cedula_a_nombre = {v: k for k, v in vendedores_dict.items()}
+            df_todas["vendedor_nombre"] = df_todas["vendedor_cedula"].map(cedula_a_nombre)
+            
+            # Mostrar cada venta en una tarjeta
+            for idx, venta in df_todas.iterrows():
+                with st.container(border=True):
+                    col1, col2 = st.columns([2, 1])
+                    with col1:
+                        st.write(f"**ID:** {venta['id']} | **Cuenta:** {venta['cuenta']} | **Fecha:** {venta['fecha']}")
+                        st.write(f"**Asesor original:** {venta['nombre_asesor_origen']}")
+                        st.write(f"**Producto:** {venta['tipo_producto']} | **Valor:** ${venta['valor']}")
+                        estado = venta['vendedor_nombre'] if venta['vendedor_nombre'] else "🔴 Sin asignar"
+                        st.write(f"**Vendedor actual:** {estado}")
+                    
+                    with col2:
+                        # Preparar opciones del desplegable
+                        opciones = ["(Sin asignar)"] + list(vendedores_dict.keys())
+                        # Encontrar el índice actual
+                        valor_actual = venta['vendedor_nombre']
+                        indice_default = 0
+                        if valor_actual in opciones:
+                            indice_default = opciones.index(valor_actual)
+                        
+                        nuevo_vendedor = st.selectbox(
+                            "Cambiar a:",
+                            options=opciones,
+                            index=indice_default,
+                            key=f"admin_sel_{venta['id']}"
+                        )
+                        
+                        if st.button("Actualizar", key=f"admin_btn_{venta['id']}"):
+                            # Calcular nueva cédula (None si es "Sin asignar")
+                            nueva_cedula = None if nuevo_vendedor == "(Sin asignar)" else vendedores_dict[nuevo_vendedor]
+                            supabase.table("ventas") \
+                                .update({"vendedor_cedula": nueva_cedula}) \
+                                .eq("id", venta["id"]) \
+                                .execute()
+                            st.success(f"✅ Venta ID {venta['id']} actualizada correctamente.")
+                            st.rerun()
+    elif password:
+        st.error("❌ Contraseña incorrecta")
