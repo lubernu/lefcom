@@ -1,4 +1,4 @@
-'''import streamlit as st
+import streamlit as st
 from supabase import create_client
 import pandas as pd
 
@@ -49,22 +49,4 @@ for venta in ventas_pendientes.data:
                 .eq("id", venta["id"]) \
                 .execute()
             st.success(f"Asignado a {nombre_seleccionado}")
-            st.rerun()  # Recarga la página para que desaparezca la venta asignada '''
-
-import streamlit as st
-from supabase import create_client
-
-# Cargar secretos desde .streamlit/secrets.toml
-url = st.secrets["SUPABASE_URL"]
-key = st.secrets["SUPABASE_KEY"]
-supabase = create_client(url, key)
-
-st.title("🔧 Diagnóstico de conexión a Supabase")
-
-try:
-    # Intento 1: consulta simple
-    result = supabase.table("ventas").select("*").limit(1).execute()
-    st.success("✅ Consulta exitosa. Datos de ejemplo:")
-    st.json(result.data)
-except Exception as e:
-    st.error(f"❌ Error completo: {e}")
+            st.rerun()  # Recarga la página para que desaparezca la venta asignada 
