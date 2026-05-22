@@ -30,7 +30,10 @@ st.info(f"🔔 Hay **{len(ventas_pendientes.data)}** ventas sin vendedor.")
 
 # Mostrar cada venta en una tarjeta
 for venta in ventas_pendientes.data:
-    with st.expander(f"Venta ID {venta['id']} - {venta['fecha']} - {venta['cuenta']}"):
+    # Título más descriptivo
+    titulo = f"🧑‍💼 {venta['nombre_asesor_origen']} - {venta['fecha']} - Cuenta: {venta['cuenta']}"
+    
+    with st.expander(titulo):
         st.write(f"**Asesor original:** {venta['nombre_asesor_origen']}")
         st.write(f"**Producto:** {venta['tipo_producto']} | **Valor:** ${venta['valor']}")
         
@@ -48,4 +51,4 @@ for venta in ventas_pendientes.data:
                 .eq("id", venta["id"]) \
                 .execute()
             st.success(f"Asignado a {nombre_seleccionado}")
-            st.rerun()  # Recarga la página para que desaparezca la venta asignada 
+            st.rerun()
