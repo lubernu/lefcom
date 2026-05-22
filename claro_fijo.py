@@ -14,7 +14,7 @@ st.title("📋 Ventas pendientes de asignar")
 ventas_pendientes = supabase.table("ventas") \
     .select("*") \
     .is_("vendedor_cedula", None)
-    .execute()
+#    .execute()
 
 # Cargar vendedores para el desplegable
 vendedores = supabase.table("vendedores") \
