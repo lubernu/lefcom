@@ -35,7 +35,7 @@ def cargar_ventas(pendientes=True):
 tab1, tab2 = st.tabs(["📌 Ventas Pendientes", "✅ Ventas Asignadas"])
 
 # ================= PESTAÑA 1: PENDIENTES =================
-with tab1:
+'''with tab1:
     st.subheader("Ventas sin vendedor asignado")
     ventas_pendientes = cargar_ventas(pendientes=True)
     
@@ -102,4 +102,36 @@ with tab2:
             data=csv,
             file_name="ventas_asignadas.csv",
             mime="text/csv",
-        )
+        )   '''
+with tab2:
+    st.subheader("Ventas con vendedor asignado")
+    ventas_asignadas = cargar_ventas(pendientes=False)
+    
+    if not ventas_asignadas.data:
+        st.info("Aún no hay ventas asignadas.")
+    else:
+        df_asignadas = pd.DataFrame(ventas_asignadas.data)
+        cedula_a_nombre = {v: k for k, v in vendedores_dict.items()}
+        df_asignadas["vendedor_nombre"] = df_asignadas["vendedor_cedula"].map(cedula_a_nombre)
+        
+        # Mostrar cada venta como una tarjeta pequeña con botón de reasignar
+        for idx, venta in df_asignadas.iterrows():
+            col1, col2, col3 = st.columns([3, 2, 1])
+            with col1:
+                st.write(f"**{venta['nombre_asesor_origen']}** - {venta['fecha']} - Cuenta: {venta['cuenta']}")
+                st.caption(f"Vendedor actual: {venta['vendedor_nombre']}")
+            with col2:
+                st.write(f"Producto: {venta['tipo_producto']} | ${venta['valor']}")
+            with col3:
+                if st.button("🔄 Reasignar", key=f"reasignar_{venta['id']}"):
+                    supabase.table("ventas") \
+                        .update({"vendedor_cedula": None}) \
+                        .eq("id", venta["id"]) \
+                        .execute()
+                    st.success(f"Venta ID {venta['id']} marcada para reasignar. Recarga la página.")
+                    st.rerun()
+        
+        # Botón para descargar CSV igual que antes
+        csv = df_asignadas.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 Descargar asignadas como CSV", csv, "ventas_asignadas.csv", "text/csv")
+
