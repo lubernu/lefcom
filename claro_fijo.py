@@ -1,4 +1,4 @@
-'''import streamlit as st
+import streamlit as st
 from supabase import create_client
 import pandas as pd
 
@@ -14,8 +14,7 @@ st.title("📋 Ventas pendientes de asignar")
 ventas_pendientes = supabase.table("ventas") \
     .select("*") \
     .is_("vendedor_cedula", None)
-    .execute()
-
+    .execute()        
 # Cargar vendedores para el desplegable
 vendedores = supabase.table("vendedores") \
     .select("cedula, nombre") \
@@ -49,23 +48,4 @@ for venta in ventas_pendientes.data:
                 .eq("id", venta["id"]) \
                 .execute()
             st.success(f"Asignado a {nombre_seleccionado}")
-            st.rerun()  # Recarga la página para que desaparezca la venta asignada '''
-
-import streamlit as st
-from supabase import create_client
-
-url = st.secrets["SUPABASE_URL"]
-key = st.secrets["SUPABASE_KEY"]
-
-st.write("URL:", url)
-st.write("Key (primeros 10):", key[:10])
-
-supabase = create_client(url, key)
-
-# Forma correcta de contar registros
-try:
-    response = supabase.table("ventas").select("*", count="exact").execute()
-    st.write("Conteo total:", response.count)
-    st.write("Primeras filas (muestra):", response.data[:3])
-except Exception as e:
-    st.error(f"Error: {e}")
+            st.rerun()  # Recarga la página para que desaparezca la venta asignada 
