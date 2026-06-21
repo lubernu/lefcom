@@ -1,5 +1,6 @@
 import streamlit as st
 from supabase import create_client
+from datetime import date
 import pandas as pd
 
 # Configuración (credenciales en .streamlit/secrets.toml)
@@ -21,14 +22,22 @@ vendedores_dict = cargar_vendedores()
 # ------------------------------
 # Función para cargar ventas según estado
 # ------------------------------
-def cargar_ventas(pendientes=True):
+
+def cargar_ventas(pendientes=True, año=2026):
     query = supabase.table("ventas").select("*")
+    
+    # Filtro de mes (junio)
+    inicio = date(año, 6, 1)
+    fin = date(año, 7, 1)  # 1 de julio (exclusivo)
+    query = query.gte("fecha", inicio.isoformat()).lt("fecha", fin.isoformat())
+    
+    # Filtro de pendientes
     if pendientes:
         query = query.is_("vendedor_cedula", None)
     else:
         query = query.not_.is_("vendedor_cedula", None)
+    
     return query.order("fecha", desc=False).execute()
-
 # ------------------------------
 # Crear pestañas
 # ------------------------------
