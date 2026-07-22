@@ -44,6 +44,7 @@ def cargar_ventas(pendientes=True, año=2026):
 tab1, tab2 = st.tabs(["📌 Ventas Pendientes", "✅ Ventas Asignadas"])
 
 # ================= PESTAÑA 1: PENDIENTES =================
+# ================= PESTAÑA 1: PENDIENTES =================
 with tab1:
     st.subheader("Ventas sin vendedor asignado")
     ventas_pendientes = cargar_ventas(pendientes=True)
@@ -51,30 +52,71 @@ with tab1:
     if not ventas_pendientes.data:
         st.success("✅ No hay ventas pendientes. ¡Todo asignado!")
     else:
-        st.info(f"🔔 Hay **{len(ventas_pendientes.data)}** ventas sin vendedor.")
+        # 1. Convertir a DataFrame para agrupar fácilmente
+        df_pendientes = pd.DataFrame(ventas_pendientes.data)
         
-        for venta in ventas_pendientes.data:
-            titulo = f"🧑‍💼 {venta['nombre_asesor_origen']} - {venta['fecha']} - Cuenta: {venta['cuenta']}"
+        # 2. Obtener lista de asesores originales únicos
+        asesores_origen = df_pendientes["nombre_asesor_origen"].unique()
+        
+        st.info(f"🔔 Hay **{len(df_pendientes)}** ventas pendientes, agrupadas en **{len(asesores_origen)}** asesores originales.")
+        
+        # 3. Iterar sobre cada asesor original para crear su pestaña desplegable (expander)
+        for asesor in asesores_origen:
+            # Filtrar las ventas que pertenecen a este asesor
+            df_asesor = df_pendientes[df_pendientes["nombre_asesor_origen"] == asesor].copy()
+            
+            titulo = f"🧑‍💼 {asesor} ({len(df_asesor)} ventas pendientes)"
             with st.expander(titulo):
-                st.write(f"**Asesor original:** {venta['nombre_asesor_origen']}")
-                st.write(f"**Producto:** {venta['tipo_producto']} | **Valor:** ${venta['valor']}")
                 
-                nombre_seleccionado = st.selectbox(
-                    "Asignar vendedor:",
-                    options=list(vendedores_dict.keys()),
-                    key=f"select_{venta['id']}"
+                # Crear una columna vacía para nuestro desplegable
+                df_asesor["vendedor_asignado"] = None 
+                
+                # Seleccionar y ordenar las columnas que vamos a mostrar
+                columnas_mostrar = ["id", "fecha", "cuenta", "tipo_producto", "valor", "vendedor_asignado"]
+                df_mostrar = df_asesor[columnas_mostrar]
+                
+                # 4. Usar st.data_editor para mostrar la tabla con el selectbox
+                edited_df = st.data_editor(
+                    df_mostrar,
+                    column_config={
+                        "id": "ID",
+                        "fecha": "Fecha",
+                        "cuenta": "Cuenta",
+                        "tipo_producto": "Producto",
+                        "valor": st.column_config.NumberColumn("Valor", format="$%d"),
+                        # Configurar la última columna como un menú desplegable
+                        "vendedor_asignado": st.column_config.SelectboxColumn(
+                            "Asignar a:",
+                            help="Selecciona el vendedor final de la lista",
+                            options=list(vendedores_dict.keys()),
+                            required=False
+                        )
+                    },
+                    # Bloquear la edición de los datos originales para que solo modifiquen el dropdown
+                    disabled=["id", "fecha", "cuenta", "tipo_producto", "valor"], 
+                    hide_index=True,
+                    use_container_width=True,
+                    key=f"editor_{asesor}" # Necesario para que cada tabla tenga su propio estado
                 )
                 
-                if st.button("✅ Asignar", key=f"btn_{venta['id']}"):
-                    cedula = vendedores_dict[nombre_seleccionado]
-                    supabase.table("ventas") \
-                        .update({"vendedor_cedula": cedula}) \
-                        .eq("id", venta["id"]) \
-                        .execute()
-                    st.success(f"Asignado a {nombre_seleccionado}")
-                    st.rerun()
-
-# ================= PESTAÑA 2: ASIGNADAS =================
+                # 5. Botón de guardado en lote para este asesor específico
+                if st.button("✅ Guardar asignaciones", key=f"btn_guardar_{asesor}"):
+                    # Filtrar solo las filas donde el usuario seleccionó un vendedor (no nulos)
+                    asignaciones = edited_df.dropna(subset=["vendedor_asignado"])
+                    
+                    if not asignaciones.empty:
+                        # Actualizar en Supabase cada venta asignada
+                        for _, row in asignaciones.iterrows():
+                            cedula = vendedores_dict[row["vendedor_asignado"]]
+                            supabase.table("ventas") \
+                                .update({"vendedor_cedula": cedula}) \
+                                .eq("id", row["id"]) \
+                                .execute()
+                        
+                        st.success(f"Se asignaron {len(asignaciones)} ventas de {asesor} correctamente.")
+                        st.rerun() # Recargar para actualizar la vista
+                    else:
+                        st.warning("⚠️ No has seleccionado ningún vendedor para asignar.")# ================= PESTAÑA 2: ASIGNADAS =================
 with tab2:
     st.subheader("Ventas con vendedor asignado")
     ventas_asignadas = cargar_ventas(pendientes=False)
