@@ -27,8 +27,8 @@ def cargar_ventas(pendientes=True, año=2026):
     query = supabase.table("ventas").select("*")
     
     # Filtro de mes (junio)
-    inicio = date(año, 6, 1)
-    fin = date(año, 7, 1)  # 1 de julio (exclusivo)
+    inicio = date(año, 7, 1)
+    fin = date(año, 8, 1)  # 1 de julio (exclusivo)
     query = query.gte("fecha", inicio.isoformat()).lt("fecha", fin.isoformat())
     
     # Filtro de pendientes
