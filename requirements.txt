@@ -12,3 +12,5 @@ openpyxl>=3.1.0  # Si también manejas archivos Excel
 plotly>=5.14.0  # Si quieres gráficos interactivos
 matplotlib>=3.7.0  # Si prefieres gráficos estáticos
 seaborn>=0.12.0  # Para estadísticas visuales
+
+starlette<1.4.0
