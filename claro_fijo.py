@@ -10,7 +10,7 @@ ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "lefcom2026*")
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-st.set_page_config(page_title="Asignación de Vendedores", layout="centered")
+st.set_page_config(page_title="Asignación de Vendedores",  layout="wide")
 st.title("📋 Gestión de Ventas")
 
 # -------------------------------------------------------------
