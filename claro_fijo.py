@@ -119,8 +119,11 @@ with tab2:
         df_asignadas = pd.DataFrame(ventas_asignadas.data)
         df_asignadas["vendedor_nombre"] = df_asignadas["vendedor_cedula"].map(cedula_a_nombre)
         
+        # ✅ Crear columna consecutiva que empieza en 1
+        df_asignadas["N°"] = range(1, len(df_asignadas) + 1)
+        
         columnas_mostrar = {
-            "id": "ID",
+            "N°": "N°",                    # <-- Ahora usa el consecutivo
             "fecha": "Fecha",
             "cuenta": "Cuenta",
             "nombre_asesor_origen": "Asesor Original",
