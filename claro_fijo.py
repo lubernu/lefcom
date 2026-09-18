@@ -27,8 +27,8 @@ def cargar_ventas(pendientes=True, año=2026):
     query = supabase.table("ventas").select("*")
     
     # Filtro de mes (Agosto)
-    inicio = date(año, 8, 1)
-    fin = date(año, 9, 1)  # 1 de septiembre (exclusivo)
+    inicio = date(año, 9, 1)
+    fin = date(año, 10, 1)  # 1 de septiembre (exclusivo)
     query = query.gte("fecha", inicio.isoformat()).lt("fecha", fin.isoformat())
     
     # Filtro de asignación
